@@ -8,7 +8,7 @@
 
 스크린샷은 현재 소스의 Release 빌드에서 데모 미디어로 촬영했습니다. [촬영 정보](image/README.md)
 
-> **[최신 버전 다운로드](https://github.com/vjdeck/site/releases/latest/download/VJDeck.dmg)** · Apple Silicon Mac · macOS 15.4 이상. DMG를 열고 VJDeck을 Applications 폴더로 옮기세요. 1.6.0부터 자동 업데이트를 지원하며, 기존 버전은 한 번 수동으로 설치해야 합니다.
+> **[최신 버전 다운로드](https://github.com/vjdeck/app/releases/latest/download/VJDeck.dmg)** · Apple Silicon Mac · macOS 15.4 이상. DMG를 열고 VJDeck을 Applications 폴더로 옮기세요. 1.6.0부터 자동 업데이트를 지원하며, 기존 버전은 한 번 수동으로 설치해야 합니다.
 
 ## 빠르게 시작하기
 
