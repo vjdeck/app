@@ -7,7 +7,8 @@ import Foundation
 @MainActor
 final class AppUpdater: ObservableObject {
     static let shared = AppUpdater()
-    nonisolated static let repository = "vjdeck/site"
+    /// Releases are published here and mirrored to `vjdeck/site`, which copies up to 1.8.0 still check.
+    nonisolated static let repository = "vjdeck/app"
     /// Release asset name prefix and bundle name inside the zip (`VJDeck-<version>.zip` → `VJDeck.app`).
     nonisolated static let appName = "VJDeck"
     private static let skippedVersionKey = "AppUpdater.skippedVersion"

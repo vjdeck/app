@@ -30,15 +30,17 @@ matches `origin/main` (`--dry-run` previews it). The script bumps
 `Resources/Info.plist`, builds and ad-hoc signs the Release app, pushes the
 `Bump version to vVERSION` commit and tag, and uploads `VJDeck.dmg` and
 `VJDeck-VERSION.zip` to the public
-[vjdeck/site releases](https://github.com/vjdeck/site/releases) with that
-changelog section as notes. It needs `gh auth login` with write access there.
+[vjdeck/app releases](https://github.com/vjdeck/app/releases) with that
+changelog section as notes, then mirrors the same release to
+[vjdeck/site](https://github.com/vjdeck/site/releases). It needs
+`gh auth login` with write access to both repositories.
 Missing or empty release notes and missing repository write access stop the
 script before the version changes. If publishing fails after committing, the
 script prints commands to finish the release using the existing commit, tag,
 and assets. Both release commands use `scripts/build-dmg.sh` for building,
 signing, and packaging; `--app PATH --output PATH` packages an existing app.
 
-Release builds check that repository on launch. Writable copies directly in
+Release builds check `vjdeck/app` on launch. Writable copies directly in
 `/Applications` or `~/Applications` download and verify
 `VJDeck-VERSION.zip`, and install it when VJDeck quits or from Settings →
 General → Restart to Update, after a confirmation that playback will stop.
@@ -58,10 +60,10 @@ Keep that asset name and the bundle ID unchanged,
 or installed copies ignore the release. Debug builds skip the check unless
 launched with `-forceUpdateCheck YES`; that flag still respects install locations.
 Ad-hoc signature verification detects damage but does not authenticate the
-publisher. Update authenticity continues to rely on control of vjdeck/site;
+publisher. Update authenticity continues to rely on control of vjdeck/app and vjdeck/site;
 separate signed update metadata is not part of this implementation.
 
-Copies released before the move to the `vjdeck` organization still query
-`ImBada/VJDeck-site`, which GitHub redirects to `vjdeck/site` because the
-repository was transferred. Never create a repository at that old path, or those
-copies stop receiving updates.
+Copies up to 1.8.0 still query `ImBada/VJDeck-site`, which GitHub redirects
+to `vjdeck/site` because the repository was transferred. The mirrored release
+there moves them to a version that checks `vjdeck/app`. Keep mirroring, and never
+create a repository at that old path, or those copies stop receiving updates.
