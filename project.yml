@@ -1,0 +1,292 @@
+name: VJDeck
+options:
+  bundleIdPrefix: com.bada
+  deploymentTarget:
+    macOS: "15.4"
+  xcodeVersion: "16.3"
+  minimumXcodeGenVersion: "2.40"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "15.4"
+    SWIFT_OBJC_BRIDGING_HEADER: Sources/App/BridgingHeader.h
+    CLANG_CXX_LANGUAGE_STANDARD: "c++17"
+    CLANG_CXX_LIBRARY: "libc++"
+    FRAMEWORK_SEARCH_PATHS:
+      - "$(PROJECT_DIR)/Frameworks"
+    HEADER_SEARCH_PATHS:
+      - "$(PROJECT_DIR)/Frameworks/FFmpeg/include"
+      - "$(PROJECT_DIR)/Sources/ThirdParty/signalsmith"
+    LIBRARY_SEARCH_PATHS:
+      - "$(PROJECT_DIR)/Frameworks/FFmpeg/lib"
+    ARCHS:
+      - arm64
+    ONLY_ACTIVE_ARCH: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: true
+
+targets:
+  VJDeck:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+      - path: Resources
+      - path: Frameworks/FFmpeg/bin
+        buildPhase: resources
+      - path: .web-tools/bin/yt-dlp
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Helpers
+        attributes:
+          - CodeSignOnCopy
+      - path: .web-tools/bin/deno
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Helpers
+        attributes:
+          - CodeSignOnCopy
+    settings:
+      base:
+        INFOPLIST_FILE: Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.bada.VJDeck
+        PRODUCT_NAME: VJDeck
+        CODE_SIGN_ENTITLEMENTS: Resources/VJDeck.entitlements
+        LD_RUNPATH_SEARCH_PATHS:
+          - "@executable_path/../Frameworks"
+        ENABLE_HARDENED_RUNTIME: false
+        OTHER_LDFLAGS:
+          - "-Wl,-w"
+          - "-lavcodec"
+          - "-lavformat"
+          - "-lavutil"
+          - "-lswscale"
+          - "-lswresample"
+          - "-framework VideoToolbox"
+          - "-framework AudioToolbox"
+          - "-framework CoreMedia"
+          - "-framework CoreVideo"
+          - "-framework Security"
+    preBuildScripts:
+      - name: Embed open-source license notices
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/FFmpeg-LGPL-2.1.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/dav1d-BSD-2-Clause.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/Syphon-BSD.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/Signalsmith-Stretch.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/Signalsmith-Linear.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/yt-dlp-Unlicense.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/yt-dlp-Third-Party.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/Deno-MIT.txt
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Licenses/README.txt
+        inputFiles:
+          - $(SRCROOT)/Notices/FFmpeg-LGPL-2.1.txt
+          - $(SRCROOT)/Notices/dav1d-BSD-2-Clause.txt
+          - $(SRCROOT)/Notices/Syphon-BSD.txt
+          - $(SRCROOT)/Sources/ThirdParty/signalsmith/LICENSE-signalsmith-stretch.txt
+          - $(SRCROOT)/Sources/ThirdParty/signalsmith/LICENSE-signalsmith-linear.txt
+          - $(SRCROOT)/.web-tools/licenses/yt-dlp-Unlicense.txt
+          - $(SRCROOT)/.web-tools/licenses/yt-dlp-Third-Party.txt
+          - $(SRCROOT)/.web-tools/licenses/Deno-MIT.txt
+        script: |
+          set -e
+          if [ ! -f "$SRCROOT/.web-tools/licenses/yt-dlp-Unlicense.txt" ] \
+             || [ ! -f "$SRCROOT/.web-tools/licenses/yt-dlp-Third-Party.txt" ] \
+             || [ ! -f "$SRCROOT/.web-tools/licenses/Deno-MIT.txt" ]; then
+            echo "error: Missing web tool licenses. Run scripts/fetch-web-tools.sh before building VJDeck." >&2
+            exit 1
+          fi
+          LIC_DST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Licenses"
+          mkdir -p "$LIC_DST"
+          cp "$SRCROOT/Notices/FFmpeg-LGPL-2.1.txt"                    "$LIC_DST/FFmpeg-LGPL-2.1.txt"
+          cp "$SRCROOT/Notices/dav1d-BSD-2-Clause.txt"                 "$LIC_DST/dav1d-BSD-2-Clause.txt"
+          cp "$SRCROOT/Notices/Syphon-BSD.txt"                         "$LIC_DST/Syphon-BSD.txt"
+          cp "$SRCROOT/Sources/ThirdParty/signalsmith/LICENSE-signalsmith-stretch.txt" "$LIC_DST/Signalsmith-Stretch.txt"
+          cp "$SRCROOT/Sources/ThirdParty/signalsmith/LICENSE-signalsmith-linear.txt"  "$LIC_DST/Signalsmith-Linear.txt"
+          cp "$SRCROOT/.web-tools/licenses/yt-dlp-Unlicense.txt"                     "$LIC_DST/yt-dlp-Unlicense.txt"
+          cp "$SRCROOT/.web-tools/licenses/yt-dlp-Third-Party.txt"                   "$LIC_DST/yt-dlp-Third-Party.txt"
+          cp "$SRCROOT/.web-tools/licenses/Deno-MIT.txt"                             "$LIC_DST/Deno-MIT.txt"
+          cat > "$LIC_DST/README.txt" <<'EOF'
+          VJDeck — Open Source Component Notices
+          =======================================
+
+          FFmpeg 9.0.2              (LGPL-2.1+)   — FFmpeg-LGPL-2.1.txt
+            Source: https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
+            Shipped unmodified from upstream. Configure line: run
+            Contents/Resources/ffmpeg -version
+            The dylibs in VJDeck.app/Contents/Frameworks/ can be
+            replaced with your own builds.
+
+          dav1d 1.5.1               (BSD-2-Clause) — dav1d-BSD-2-Clause.txt
+            Source: https://code.videolan.org/videolan/dav1d
+
+          Signalsmith Stretch       (MIT)         — Signalsmith-Stretch.txt
+          Signalsmith Linear        (MIT)         — Signalsmith-Linear.txt
+            Source: https://github.com/Signalsmith-Audio/signalsmith-stretch
+                    https://github.com/Signalsmith-Audio/linear
+
+          yt-dlp macOS 2026.08.19   (GPL-3.0+ combined executable)
+            Source: https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19
+            Notices: yt-dlp-Unlicense.txt, yt-dlp-Third-Party.txt
+
+          Deno 2.9.6                (MIT)          — Deno-MIT.txt
+            Source: https://github.com/denoland/deno/releases/tag/v2.9.6
+
+          Syphon                    (Simplified BSD) — Syphon-BSD.txt
+            Source: https://github.com/Syphon/Syphon-Framework
+          EOF
+      - name: Validate bundled web video tools
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - $(SRCROOT)/scripts/fetch-web-tools.sh
+          - $(SRCROOT)/Resources/Credits.rtf
+          - $(SRCROOT)/.web-tools/bin/yt-dlp
+          - $(SRCROOT)/.web-tools/bin/deno
+          - $(SRCROOT)/.web-tools/licenses/yt-dlp-Unlicense.txt
+          - $(SRCROOT)/.web-tools/licenses/yt-dlp-Third-Party.txt
+          - $(SRCROOT)/.web-tools/licenses/Deno-MIT.txt
+        script: |
+          set -euo pipefail
+          "$SRCROOT/scripts/fetch-web-tools.sh" --verify-only
+    dependencies:
+      - target: VJDeckUpdateSwap
+        embed: true
+        link: false
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
+      - framework: Frameworks/FFmpeg/lib/libavcodec.dylib
+        embed: true
+        codeSign: true
+      - framework: Frameworks/FFmpeg/lib/libavformat.dylib
+        embed: true
+        codeSign: true
+      - framework: Frameworks/FFmpeg/lib/libavfilter.dylib
+        embed: true
+        codeSign: true
+      - framework: Frameworks/FFmpeg/lib/libavutil.dylib
+        embed: true
+        codeSign: true
+      - framework: Frameworks/FFmpeg/lib/libswresample.dylib
+        embed: true
+        codeSign: true
+      - framework: Frameworks/FFmpeg/lib/libswscale.dylib
+        embed: true
+        codeSign: true
+      - framework: Frameworks/Syphon.framework
+        embed: true
+    entitlements:
+      path: Resources/VJDeck.entitlements
+  VJDeckUpdateSwap:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Tools/UpdateSwap
+    settings:
+      base:
+        PRODUCT_NAME: VJDeckUpdateSwap
+        SKIP_INSTALL: YES
+  VJDeckTests:
+    type: bundle.unit-test
+    platform: macOS
+    # Sources are compiled into this target, including the test-only MIDI/cache hooks.
+    # Inherit DEBUG in Debug; Release only adds VJDECK_TESTING.
+    sources:
+      - path: Tests
+        excludes:
+          - REGRESSION_MATRIX.md
+      - path: Sources/FastFind/PlaylistSearchEngine.swift
+      - path: Sources/FastFind/PlaylistSearchRowData.swift
+      - path: Sources/FastFind/PlaylistSearchPreferences.swift
+      - path: Sources/FastFind/PlaylistSearchViewModel.swift
+      - path: Sources/FastFind/PlaylistSearchDrag.swift
+      - path: Sources/FastFind/PlaylistSearchHighlight.swift
+      - path: Sources/FastFind/PlaylistSearchMIDI.swift
+      - path: Sources/FastFind/PlaylistSearchIntegration.swift
+      - path: Sources/FastFind/PlaylistSearchResultsTable.swift
+      - path: Sources/FastFind/PlaylistSearchTagLayout.swift
+      - path: Sources/Models/AppSettings.swift
+      - path: Sources/Models/WaveformData.swift
+      - path: Sources/Models/SyncResult.swift
+      - path: Sources/Models/MIDIMapping.swift
+      - path: Sources/Models/M3UPlaylistParser.swift
+      - path: Sources/Models/Playlist.swift
+      - path: Sources/Models/PlaylistItemLocationCache.swift
+      - path: Sources/Models/PlaylistSessionState.swift
+      - path: Sources/Views/PlaylistViewportTracker.swift
+      - path: Sources/Models/PlaylistStore.swift
+      - path: Sources/Views/PlaylistItemsTable.swift
+      - path: Sources/Models/VideoItem.swift
+      - path: Sources/Models/WebVideoDownload.swift
+      - path: Sources/Utilities/AppNotifications.swift
+      - path: Sources/Utilities/DeckWindowGeometry.swift
+      - path: Sources/Utilities/TimeFormatter.swift
+      - path: Sources/Utilities/StandardEditMenu.swift
+      - path: Sources/Utilities/XcodeDebugMode.swift
+      - path: Sources/Services/MetalRenderer.swift
+      - path: Sources/Services/FrameQueue.swift
+      - path: Sources/Models/VideoFrameSource.swift
+      - path: Sources/Services/MIDIService.swift
+      - path: Sources/Models/OSCMessage.swift
+      - path: Sources/Services/OSCService.swift
+      - path: Sources/Services/AudioSyncClockTracker.swift
+      - path: Sources/Services/AudioQueryWindowAccumulator.swift
+      - path: Sources/Services/PCMAudioEngine.swift
+      - path: Sources/Services/ShazamSignatureBuilder.swift
+      - path: Sources/ThirdParty/signalsmith/SignalsmithStretchBridge.mm
+      - path: Sources/Services/StillImageDecoder.swift
+      - path: Sources/Services/MediaDurationProbe.swift
+      - path: Sources/Services/FFmpegDecoder.swift
+      - path: Sources/Utilities/AudioUtils.swift
+      - path: Sources/Services/FFmpegInProcessPlayer.swift
+      - path: Sources/Services/VideoPlayerService.swift
+      - path: Sources/Services/AppDisplayLinkDriver.swift
+      - path: Sources/Services/MicCaptureService.swift
+      - path: Sources/Utilities/AVAudioTapInstaller.m
+      - path: Sources/Services/AudioSyncOrchestrator.swift
+      - path: Sources/ViewModels/SyncViewModel.swift
+      - path: Sources/ViewModels/PlayerViewModel.swift
+      - path: Sources/ViewModels/MasterOutputViewModel.swift
+      - path: Sources/ViewModels/PlaylistViewModel.swift
+      - path: Sources/Services/SyphonOutputService.swift
+      - path: Sources/Services/SyphonServerBrowser.swift
+      - path: Sources/Services/MasterMixerRenderer.swift
+      - path: Sources/Utilities/MetalShaders.metal
+      - path: Sources/ViewModels/MediaLoadPreflight.swift
+      - path: Sources/Services/WebVideoDownloadService.swift
+      - path: Sources/Utilities/FileDropURLLoader.swift
+      - path: Sources/ViewModels/MIDIViewModel.swift
+      - path: Sources/Services/AppUpdater.swift
+    dependencies:
+      - target: VJDeckUpdateSwap
+        embed: true
+        link: false
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
+    settings:
+      base:
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) VJDECK_TESTING"
+        PRODUCT_BUNDLE_IDENTIFIER: com.bada.VJDeckTests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_OBJC_BRIDGING_HEADER: Tests/VJDeckTests/BridgingHeader.h
+        OTHER_LDFLAGS:
+          - "-lavformat"
+          - "-lavcodec"
+          - "-lavutil"
+          - "-lswscale"
+          - "-framework Syphon"
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/Frameworks/FFmpeg/lib"
+          - "$(PROJECT_DIR)/Frameworks"
+
+schemes:
+  VJDeck:
+    build:
+      targets:
+        VJDeck: all
+    test:
+      targets:
+        - VJDeckTests

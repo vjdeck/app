@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <clipPath id="sq">
+      <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#sq)">
+    <!-- Background -->
+    <rect width="1024" height="1024" fill="#111118"/>
+
+    <!-- Subtle center glow -->
+    <circle cx="512" cy="512" r="420" fill="#00bcd4" opacity="0.06"/>
+
+    <!-- Waveform bars - left group -->
+    <rect x="115" y="410" width="22" height="204" rx="11" fill="#00bcd4" opacity="0.7"/>
+    <rect x="152" y="340" width="22" height="344" rx="11" fill="#00d4e0" opacity="0.75"/>
+    <rect x="189" y="375" width="22" height="274" rx="11" fill="#00bcd4" opacity="0.7"/>
+    <rect x="226" y="295" width="22" height="434" rx="11" fill="#00e5ff" opacity="0.8"/>
+    <rect x="263" y="350" width="22" height="324" rx="11" fill="#00bcd4" opacity="0.7"/>
+    <rect x="300" y="275" width="22" height="474" rx="11" fill="#00e5ff" opacity="0.85"/>
+    <rect x="337" y="330" width="22" height="364" rx="11" fill="#00d4e0" opacity="0.75"/>
+    <rect x="374" y="255" width="22" height="514" rx="11" fill="#00e5ff" opacity="0.9"/>
+    <rect x="411" y="305" width="22" height="414" rx="11" fill="#00d4e0" opacity="0.8"/>
+
+    <!-- Play triangle -->
+    <polygon points="470,300 470,724 780,512" fill="#00e5ff" opacity="0.92"/>
+
+    <!-- Waveform bars - right group -->
+    <rect x="810" y="320" width="22" height="384" rx="11" fill="#00e5ff" opacity="0.85"/>
+    <rect x="847" y="265" width="22" height="494" rx="11" fill="#00e5ff" opacity="0.9"/>
+    <rect x="884" y="350" width="22" height="324" rx="11" fill="#00bcd4" opacity="0.75"/>
+    <rect x="921" y="395" width="22" height="234" rx="11" fill="#00bcd4" opacity="0.65"/>
+
+    <!-- Playhead line -->
+    <rect x="456" y="220" width="3" height="584" rx="1.5" fill="#00e5ff" opacity="0.6"/>
+
+  </g>
+</svg>

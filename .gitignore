@@ -1,0 +1,25 @@
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+build/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Local assistant metadata
+/.claude/
+
+# Dependencies
+Pods/
+Carthage/
+
+# Syphon framework binary (large, should be built locally)
+# Frameworks/Syphon.framework/
+.ffmpeg-build/
+.web-tools/
+VJDeck.dmg
+/.build

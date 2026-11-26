@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>VJDeck</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.movie</string>
+				<string>public.video</string>
+				<string>public.avi</string>
+				<string>org.matroska.mkv</string>
+				<string>org.webmproject.webm</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleName</key>
+	<string>VJDeck</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.8.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.bada.VJDeck</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>vjdeck</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>1.8.0</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>비디오, 이미지 및 PDF 파일을 열기 위해 파일 접근이 필요합니다.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Made by bada</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>TouchOSC 같은 OSC 컨트롤러가 보낸 메시지를 받아 덱을 조작합니다.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>마이크를 사용하여 현재 재생 중인 음악을 듣고 영상과 싱크를 맞춥니다.</string>
+	<key>NSQuitAlwaysKeepsWindows</key>
+	<false/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>VJDeck Search Files</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.bada.vjdeck.search-files</string>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>VJDeck Playlist Items</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.bada.vjdeck.playlist-items</string>
+		</dict>
+	</array>
+</dict>
+</plist>

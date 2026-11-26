@@ -1,0 +1,19 @@
+module FFmpeg [system] {
+    header "libavcodec/avcodec.h"
+    header "libavformat/avformat.h"
+    header "libavutil/avutil.h"
+    header "libavutil/hwcontext.h"
+    header "libavutil/hwcontext_videotoolbox.h"
+    header "libavutil/imgutils.h"
+    header "libavutil/opt.h"
+    header "libavutil/pixdesc.h"
+    header "libavutil/channel_layout.h"
+    header "libavutil/samplefmt.h"
+    header "libswscale/swscale.h"
+    header "libswresample/swresample.h"
+    link "z"
+    link "bz2"
+    link "lzma"
+    link "iconv"
+    export *
+}
