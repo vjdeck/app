@@ -104,10 +104,12 @@ final class AudioSyncOrchestratorLifecycleTests: XCTestCase {
 
     private func referenceSamples() -> [Float] {
         let rate = ShazamSignatureBuilder.sampleRate
-        return (0..<Int(3 * rate)).map { index in
+        return (0..<Int(3 * rate)).map { index -> Float in
             let time = Double(index) / rate
-            return Float(0.3 * sin(2 * .pi * (173 + 8 * time) * time)
-                + 0.2 * sin(2 * .pi * (461 + 3 * time * time) * time))
+            let sweepPhase: Double = 2 * Double.pi * (173 + 8 * time) * time
+            let chirpPhase: Double = 2 * Double.pi * (461 + 3 * time * time) * time
+            let sample: Double = 0.3 * sin(sweepPhase) + 0.2 * sin(chirpPhase)
+            return Float(sample)
         }
     }
 
