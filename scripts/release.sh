@@ -11,9 +11,11 @@ Examples:
   scripts/release.sh 1.6.0
   scripts/release.sh minor --dry-run
 
-Publishes VJDeck to the public vjdeck/site GitHub Releases. Installed
-copies check that repository on launch and update themselves from the
-VJDeck-VERSION.zip asset; VJDeck.dmg is for manual installs.
+Publishes VJDeck to the vjdeck/app GitHub Releases and mirrors the same
+assets to vjdeck/site. Installed copies check one of those repositories on
+launch and update themselves from the VJDeck-VERSION.zip asset; VJDeck.dmg is
+for manual installs. Copies up to 1.8.0 check vjdeck/site (reached through the
+old ImBada/VJDeck-site redirect), so every release is mirrored there.
 
 Run from a clean main that matches origin/main. The script bumps
 Resources/Info.plist, builds Release, re-signs ad hoc, packages the zip and DMG,
@@ -47,7 +49,10 @@ semver_gt() {
   (( left_patch > right_patch ))
 }
 
-SITE_REPO="vjdeck/site"
+RELEASE_REPO="vjdeck/app"
+# Copies up to 1.8.0 read releases from here; mirroring moves them onto the current updater.
+LEGACY_REPO="vjdeck/site"
+PUBLISH_REPOS=("$RELEASE_REPO" "$LEGACY_REPO")
 APP_NAME="VJDeck"
 info_plist="Resources/Info.plist"
 plistbuddy="/usr/libexec/PlistBuddy"
@@ -118,7 +123,8 @@ if [[ "$dry_run" == "1" ]]; then
   echo "Next version:    $version"
   echo "Commit message:  Bump version to $tag"
   echo "Tag:             $tag"
-  echo "Release:         https://github.com/$SITE_REPO/releases/tag/$tag"
+  echo "Release:         https://github.com/$RELEASE_REPO/releases/tag/$tag"
+  echo "Mirror:          https://github.com/$LEGACY_REPO/releases/tag/$tag"
   echo "Assets:          $(basename "$dmg"), $(basename "$zip")"
   echo "Notes:           CHANGELOG.md [$version]"
   exit 0
@@ -126,8 +132,10 @@ fi
 
 command -v gh >/dev/null 2>&1 || die "gh is required: brew install gh"
 gh auth status >/dev/null 2>&1 || die "gh is not logged in: gh auth login"
-[[ "$(gh api "repos/$SITE_REPO" --jq '.permissions.push // false')" == true ]] \
-  || die "the gh token needs write access to $SITE_REPO"
+for repo in "${PUBLISH_REPOS[@]}"; do
+  [[ "$(gh api "repos/$repo" --jq '.permissions.push // false')" == true ]] \
+    || die "the gh token needs write access to $repo"
+done
 [[ "$(git branch --show-current)" == main ]] || die "run from the main branch"
 [[ -z "$(git status --porcelain)" ]] || die "working tree must be clean before releasing"
 git fetch --quiet --tags origin main
@@ -135,9 +143,11 @@ git fetch --quiet --tags origin main
 if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
   die "tag already exists: $tag"
 fi
-if gh release view "$tag" -R "$SITE_REPO" >/dev/null 2>&1; then
-  die "release already exists in $SITE_REPO: $tag"
-fi
+for repo in "${PUBLISH_REPOS[@]}"; do
+  if gh release view "$tag" -R "$repo" >/dev/null 2>&1; then
+    die "release already exists in $repo: $tag"
+  fi
+done
 
 echo "Releasing $tag..."
 
@@ -157,14 +167,16 @@ finish_release() {
         printf '  git tag -a %q -m %q\n' "$tag" "VJDeck $tag" >&2
       fi
       printf '  git push --atomic origin main %q\n' "$tag" >&2
-      if gh release view "$tag" -R "$SITE_REPO" >/dev/null 2>&1; then
-        printf '  gh release upload %q %q %q -R %q --clobber\n' "$tag" "$dmg" "$zip" "$SITE_REPO" >&2
-        printf '  gh release edit %q -R %q --title %q --notes-file %q\n' "$tag" "$SITE_REPO" "$tag" "$notes_file" >&2
-      else
-        printf '  gh release create %q %q %q -R %q --title %q --notes-file %q\n' \
-          "$tag" "$dmg" "$zip" "$SITE_REPO" "$tag" "$notes_file" >&2
-        echo '  If the release was partially created, use gh release upload --clobber instead.' >&2
-      fi
+      for repo in "${PUBLISH_REPOS[@]}"; do
+        if gh release view "$tag" -R "$repo" >/dev/null 2>&1; then
+          printf '  gh release upload %q %q %q -R %q --clobber\n' "$tag" "$dmg" "$zip" "$repo" >&2
+          printf '  gh release edit %q -R %q --title %q --notes-file %q\n' "$tag" "$repo" "$tag" "$notes_file" >&2
+        else
+          printf '  gh release create %q %q %q -R %q --title %q --notes-file %q\n' \
+            "$tag" "$dmg" "$zip" "$repo" "$tag" "$notes_file" >&2
+          echo '  If the release was partially created, use gh release upload --clobber instead.' >&2
+        fi
+      done
     fi
   fi
   exit "$status"
@@ -192,5 +204,7 @@ release_committed=1
 git tag -a "$tag" -m "VJDeck $tag"
 git push --atomic --quiet origin main "$tag"
 
-gh release create "$tag" "$dmg" "$zip" -R "$SITE_REPO" --title "$tag" --notes-file "$notes_file"
-echo "Published https://github.com/$SITE_REPO/releases/tag/$tag"
+for repo in "${PUBLISH_REPOS[@]}"; do
+  gh release create "$tag" "$dmg" "$zip" -R "$repo" --title "$tag" --notes-file "$notes_file"
+  echo "Published https://github.com/$repo/releases/tag/$tag"
+done

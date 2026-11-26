@@ -36,7 +36,7 @@ gh auth login
 gh auth status
 ```
 
-현재 계정과 인증 토큰에는 이 저장소의 `origin`에 `main`과 태그를 푸시할 권한, 공개 배포 저장소 `vjdeck/site`에 릴리스를 만들고 파일을 올릴 권한이 필요합니다. `main`의 보호 규칙이 직접 푸시를 막으면 스크립트의 버전 커밋 푸시도 실패합니다.
+현재 계정과 인증 토큰에는 이 저장소의 `origin`에 `main`과 태그를 푸시할 권한, 배포 저장소 `vjdeck/app`과 미러 저장소 `vjdeck/site`에 릴리스를 만들고 파일을 올릴 권한이 필요합니다. `main`의 보호 규칙이 직접 푸시를 막으면 스크립트의 버전 커밋 푸시도 실패합니다.
 
 빌드 준비와 [TESTING.md](../TESTING.md)의 검증을 마친 뒤 배포하세요. 최초 빌드 준비 명령은 다음과 같습니다.
 
@@ -105,7 +105,8 @@ scripts/release.sh 1.6.0
 3. `scripts/build-dmg.sh`로 arm64 Release 앱을 빌드하고 ad-hoc 서명을 검증한 뒤 DMG를 만듭니다.
 4. 자동 업데이트용 ZIP을 만듭니다.
 5. `Bump version to vVERSION` 커밋과 `vVERSION` 태그를 만들고 이 저장소의 `origin`에 함께 푸시합니다.
-6. `vjdeck/site`에 공개 릴리스를 만들고 DMG, ZIP과 변경 이력을 올립니다.
+6. `vjdeck/app`에 공개 릴리스를 만들고 DMG, ZIP과 변경 이력을 올립니다.
+7. 같은 파일과 변경 이력으로 `vjdeck/site`에도 릴리스를 만듭니다. 1.8.0 이하 앱은 이 저장소에서 업데이트를 확인하므로, 미러 릴리스를 거쳐 `vjdeck/app`을 확인하는 버전으로 넘어옵니다.
 
 버전만 변경하고 멈추는 실행 옵션은 없습니다. 실제 명령은 공개 배포까지 진행합니다.
 
@@ -120,15 +121,16 @@ scripts/release.sh 1.6.0
 | `build/release/notes-1.5.5.md` | GitHub에 올린 릴리스 노트 |
 | `build/DerivedData/Build/Products/Release/VJDeck.app` | 빌드한 앱 |
 
-성공하면 마지막에 `Published https://github.com/vjdeck/site/releases/tag/v1.5.5`가 출력됩니다. 공개 릴리스의 파일과 태그를 확인합니다.
+성공하면 마지막에 `Published https://github.com/vjdeck/app/releases/tag/v1.5.5`와 `Published https://github.com/vjdeck/site/releases/tag/v1.5.5`가 출력됩니다. 두 공개 릴리스의 파일과 태그를 확인합니다.
 
 ```bash
+gh release view v1.5.5 -R vjdeck/app
 gh release view v1.5.5 -R vjdeck/site
 git show --stat v1.5.5
 git status --short
 ```
 
-공개 릴리스에는 `VJDeck.dmg`와 `VJDeck-1.5.5.zip`이 모두 있어야 합니다. ZIP 안의 앱 이름은 `VJDeck.app`, 앱 버전은 `1.5.5`, 번들 ID는 `com.bada.VJDeck`이어야 합니다. 이 이름과 값은 스크립트와 빌드 설정이 맞추므로 수동으로 바꾸지 않습니다.
+두 공개 릴리스에는 `VJDeck.dmg`와 `VJDeck-1.5.5.zip`이 모두 있어야 합니다. ZIP 안의 앱 이름은 `VJDeck.app`, 앱 버전은 `1.5.5`, 번들 ID는 `com.bada.VJDeck`이어야 합니다. 이 이름과 값은 스크립트와 빌드 설정이 맞추므로 수동으로 바꾸지 않습니다.
 
 자동 업데이트 기능이 포함된 Release 앱은 실행할 때 새 버전을 확인합니다. `/Applications` 또는 `~/Applications` 바로 아래의 쓰기 가능한 설치본은 ZIP을 다운로드하고, 종료할 때 설치하거나 Settings → General → Restart to Update로 설치합니다. 설치가 불가능하거나 실패하면 수동 다운로드 링크를 표시합니다.
 
@@ -162,13 +164,15 @@ git tag -a v1.5.5 -m 'VJDeck v1.5.5'
 git push --atomic origin main v1.5.5
 ```
 
-공개 릴리스가 아직 없으면 준비된 파일로 릴리스를 만듭니다.
+공개 릴리스가 아직 없는 저장소에는 준비된 파일로 릴리스를 만듭니다. 스크립트는 저장소마다 필요한 명령을 출력하며, 아래 예는 `vjdeck/app`과 `vjdeck/site` 두 곳 모두 없는 경우입니다.
 
 ```bash
-gh release create v1.5.5 \
-  build/release/VJDeck.dmg build/release/VJDeck-1.5.5.zip \
-  -R vjdeck/site --title v1.5.5 \
-  --notes-file build/release/notes-1.5.5.md
+for repo in vjdeck/app vjdeck/site; do
+  gh release create v1.5.5 \
+    build/release/VJDeck.dmg build/release/VJDeck-1.5.5.zip \
+    -R "$repo" --title v1.5.5 \
+    --notes-file build/release/notes-1.5.5.md
+done
 ```
 
 릴리스는 생성됐지만 파일 업로드가 덜 끝났다면 첨부 파일과 노트를 다시 올립니다. `--clobber`는 해당 릴리스에서 이름이 같은 첨부 파일을 교체합니다.
@@ -176,8 +180,8 @@ gh release create v1.5.5 \
 ```bash
 gh release upload v1.5.5 \
   build/release/VJDeck.dmg build/release/VJDeck-1.5.5.zip \
-  -R vjdeck/site --clobber
-gh release edit v1.5.5 -R vjdeck/site --title v1.5.5 \
+  -R vjdeck/app --clobber
+gh release edit v1.5.5 -R vjdeck/app --title v1.5.5 \
   --notes-file build/release/notes-1.5.5.md
 ```
 

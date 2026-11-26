@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.8.1] - 2026-11-26
+
+### 개선
+- 앱 저장소를 [vjdeck/app](https://github.com/vjdeck/app)으로 옮기고, 자동 업데이트와 Bug Report 메뉴가 새 저장소를 사용하도록 변경
+
 ## [1.8.0] - 2026-11-14
 
 ### 개선

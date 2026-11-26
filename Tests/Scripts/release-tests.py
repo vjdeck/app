@@ -22,7 +22,7 @@ class ReleaseTests(unittest.TestCase):
         self.bin.mkdir()
         self.log = self.root / "commands.log"
         self.env = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}",
-                        TEST_LOG=str(self.log), TEST_PARTIAL_MARKER=str(self.root / "partial"))
+                        TEST_LOG=str(self.log), TEST_MARKERS=str(self.root / "releases"))
         self.git("init", "--initial-branch=main")
         self.git("config", "user.email", "release-test@example.com")
         self.git("config", "user.name", "Release Test")
@@ -42,18 +42,25 @@ class ReleaseTests(unittest.TestCase):
         self.git("remote", "add", "origin", str(self.remote))
         self.git("push", "-u", "origin", "main")
         self.initial_head = self.git("rev-parse", "HEAD")
+        # Releases are recorded per repository. TEST_READONLY and TEST_FAIL_PUBLISH name one repository.
         self.stub("gh", r'''
 printf 'gh %s\n' "$*" >> "$TEST_LOG"
+repo=""
+prev=""
+for arg in "$@"; do [ "$prev" = -R ] && repo=$arg; prev=$arg; done
+mkdir -p "$TEST_MARKERS"
+marker="$TEST_MARKERS/$(printf '%s' "$repo" | tr / _)"
 case "$1 $2" in
   'auth status') exit 0 ;;
-  'api repos/vjdeck/site') echo "${TEST_WRITABLE:-true}" ;;
-  'release view') [ -f "$TEST_PARTIAL_MARKER" ] ;;
+  'api repos/'*)
+    if [ "$2" = "repos/${TEST_READONLY:-none}" ]; then echo false; else echo true; fi ;;
+  'release view') [ -f "$marker" ] ;;
   'release create')
-    if [ "${TEST_FAIL_PUBLISH:-0}" = 1 ]; then
-      [ "${TEST_PARTIAL:-0}" != 1 ] || touch "$TEST_PARTIAL_MARKER"
+    if [ "$repo" = "${TEST_FAIL_PUBLISH:-none}" ]; then
+      [ "${TEST_PARTIAL:-0}" != 1 ] || touch "$marker"
       exit 1
     fi
-    touch "$TEST_PARTIAL_MARKER" ;;
+    touch "$marker" ;;
   *) exit 1 ;;
 esac
 ''')
@@ -112,12 +119,23 @@ for arg in "$@"; do case "$arg" in *.dmg) printf 'fixture dmg\n' > "$arg" ;; esa
         self.assertFalse(self.log.exists())
 
     def test_write_access_is_checked_before_version_change(self):
-        result = self.release(TEST_WRITABLE="false")
+        for repo in ["vjdeck/app", "vjdeck/site"]:
+            with self.subTest(repo=repo):
+                result = self.release(TEST_READONLY=repo)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"needs write access to {repo}", result.stderr)
+                self.assertEqual(self.version(), "1.5.4")
+                self.assertEqual(self.git("rev-parse", "HEAD"), self.initial_head)
+                self.assertNotIn("xcodebuild", self.log.read_text())
+
+    def test_existing_mirror_release_stops_before_version_change(self):
+        markers = self.root / "releases"
+        markers.mkdir()
+        (markers / "vjdeck_site").touch()
+        result = self.release()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("needs write access", result.stderr)
+        self.assertIn("release already exists in vjdeck/site: v1.5.5", result.stderr)
         self.assertEqual(self.version(), "1.5.4")
-        self.assertEqual(self.git("rev-parse", "HEAD"), self.initial_head)
-        self.assertNotIn("xcodebuild", self.log.read_text())
 
     def test_build_failure_restores_version_without_committing(self):
         result = self.release(TEST_FAIL_BUILD="1")
@@ -128,22 +146,28 @@ for arg in "$@"; do case "$arg" in *.dmg) printf 'fixture dmg\n' > "$arg" ;; esa
         self.assertEqual(self.git("status", "--porcelain"), "")
 
     def test_publish_failure_keeps_assets_and_prints_completion_commands(self):
-        result = self.release(TEST_FAIL_PUBLISH="1")
+        result = self.release(TEST_FAIL_PUBLISH="vjdeck/app")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("git push --atomic origin main v1.5.5", result.stderr)
-        self.assertIn("gh release create v1.5.5", result.stderr)
-        self.assertIn("--notes-file", result.stderr)
+        for repo in ["vjdeck/app", "vjdeck/site"]:
+            self.assertRegex(result.stderr, rf"gh release create v1\.5\.5 .+ -R {repo} --title v1\.5\.5 --notes-file")
         self.assertEqual(self.version(), "1.5.5")
         self.assertEqual(self.git("rev-parse", "HEAD"), self.git("rev-parse", "origin/main"))
         self.assertTrue((self.repo / "build/release/VJDeck-1.5.5.zip").exists())
         self.assertTrue((self.repo / "build/release/VJDeck.dmg").exists())
 
     def test_partial_publish_prints_upload_and_notes_recovery(self):
-        result = self.release(TEST_FAIL_PUBLISH="1", TEST_PARTIAL="1")
+        result = self.release(TEST_FAIL_PUBLISH="vjdeck/app", TEST_PARTIAL="1")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("gh release upload v1.5.5", result.stderr)
-        self.assertIn("--clobber", result.stderr)
-        self.assertIn("gh release edit v1.5.5", result.stderr)
+        self.assertRegex(result.stderr, r"gh release upload v1\.5\.5 .+ -R vjdeck/app --clobber")
+        self.assertIn("gh release edit v1.5.5 -R vjdeck/app", result.stderr)
+
+    def test_mirror_failure_recovers_only_the_mirror(self):
+        result = self.release(TEST_FAIL_PUBLISH="vjdeck/site")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Published https://github.com/vjdeck/app/releases/tag/v1.5.5", result.stdout)
+        self.assertRegex(result.stderr, r"gh release upload v1\.5\.5 .+ -R vjdeck/app --clobber")
+        self.assertRegex(result.stderr, r"gh release create v1\.5\.5 .+ -R vjdeck/site --title v1\.5\.5")
 
     def test_push_failure_keeps_local_commit_and_prints_recovery(self):
         hook = self.remote / "hooks/pre-receive"
@@ -160,12 +184,15 @@ for arg in "$@"; do case "$arg" in *.dmg) printf 'fixture dmg\n' > "$arg" ;; esa
     def test_success_uses_shared_build_and_matching_zip_and_notes(self):
         result = self.release()
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Published https://github.com/vjdeck/app/releases/tag/v1.5.5", result.stdout)
         self.assertIn("Published https://github.com/vjdeck/site/releases/tag/v1.5.5", result.stdout)
         self.assertEqual(self.version(), "1.5.5")
         log = self.log.read_text()
         self.assertEqual(log.count("xcodebuild "), 1)
         self.assertEqual(log.count("hdiutil "), 1)
         self.assertIn("VJDeck-1.5.5.zip", log)
+        creates = [line for line in log.splitlines() if line.startswith("gh release create")]
+        self.assertEqual([line.split(" -R ")[1].split()[0] for line in creates], ["vjdeck/app", "vjdeck/site"])
         self.assertEqual((self.repo / "build/release/notes-1.5.5.md").read_text().strip(), "Update notes.")
         extracted = self.root / "extracted"
         subprocess.run(["/usr/bin/ditto", "-x", "-k", str(self.repo / "build/release/VJDeck-1.5.5.zip"), str(extracted)], check=True)
